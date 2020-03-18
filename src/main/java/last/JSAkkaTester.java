@@ -16,6 +16,8 @@ import akka.http.javadsl.model.HttpResponse;
 import java.util.concurrent.CompletionStage;
 import akka.http.javadsl.server.AllDirectives;
 import akka.http.javadsl.marshallers.jackson.Jackson;
+//Подключаем ZeroMQ
+import org.zeromq.*;
 
 public class  JSAkkaTester extends AllDirectives {
 
