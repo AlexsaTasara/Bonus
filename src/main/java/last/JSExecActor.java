@@ -9,11 +9,9 @@ import javax.script.ScriptException;
 import javax.script.ScriptEngineManager;
 
 //Актор который исполняет один тест из пакета.
-
 public class JSExecActor extends AbstractActor {
     private static final String JS_ENGINE = "nashorn";
-    private static final String WRONG_ANSWER = "WRONG ANSWER!";
-    private static final String CORRECT_ANSWER = "CORRECT ANSWER!";
+    private static final String WRONG_ANSWER = "WRONG ANSWER!", CORRECT_ANSWER = "CORRECT ANSWER!";
 
     @Override
     public Receive createReceive() {
@@ -21,6 +19,7 @@ public class JSExecActor extends AbstractActor {
             Pair<Integer, FunctionPackage> msg = m.getMsg();
             int index = msg.getKey();
             FunctionPackage functionPackage = msg.getValue();
+            //Получаем тесты
             Test test = functionPackage.getTests()[index];
             ScriptEngine engine = new ScriptEngineManager().getEngineByName(JS_ENGINE);
             try{

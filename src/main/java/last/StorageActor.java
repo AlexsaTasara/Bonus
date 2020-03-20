@@ -3,9 +3,7 @@ import java.util.*;
 import akka.actor.ActorRef;
 import akka.actor.AbstractActor;
 import akka.japi.pf.ReceiveBuilder;
-
-//Актор который хранит результаты тестов.
-
+//Актор который хранит результаты тестов после их выполнения
 public class StorageActor extends AbstractActor {
     private HashMap<Integer, ArrayList<StorageMSG>> data = new HashMap<>();
     @Override

@@ -11,10 +11,10 @@ public class MainActor extends AbstractActor {
     private final static int NUM_ROUND_ROBIN_POOL = 5;
     private final ActorRef storage;//Хранилище
     private final ActorRef executors;//Исполнители
-
+    //Функция подключения акторов
     public MainActor() {
-        executors = getContext().actorOf(new RoundRobinPool(NUM_ROUND_ROBIN_POOL).props(Props.create(JSExecActor.class)));
         storage = getContext().actorOf(Props.create(StorageActor.class));
+        executors = getContext().actorOf(new RoundRobinPool(NUM_ROUND_ROBIN_POOL).props(Props.create(JSExecActor.class)));
     }
 
     @Override

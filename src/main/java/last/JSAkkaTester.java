@@ -13,6 +13,8 @@ import akka.http.javadsl.server.Route;
 import akka.http.javadsl.ServerBinding;
 import akka.http.javadsl.model.HttpRequest;
 import akka.http.javadsl.model.HttpResponse;
+
+import java.util.ArrayList;
 import java.util.concurrent.CompletionStage;
 import akka.http.javadsl.server.AllDirectives;
 import akka.http.javadsl.marshallers.jackson.Jackson;
@@ -20,37 +22,55 @@ import akka.http.javadsl.marshallers.jackson.Jackson;
 import org.zeromq.*;
 
 public class  JSAkkaTester extends AllDirectives {
-
     //Добавляю коментарий для проверки работы
     static ActorRef mainActor;
-    private static final int SERVER_PORT = 8080;
-    private static final int TIMEOUT_MILLIS = 5000;
-    private static final String ROUTES = "routes";
-    private static final String LOCALHOST = "localhost";
-    private static final String PACKAGE_ID = "packageId";
+    private static ZMQ.Poller poll;
+    private static ZContext context;
+    private static ZMQ.Socket sClient,sStorage;
+    private static final int SERVER_PORT = 8080, TIMEOUT_MILLIS = 5000;
     private static final String POST_MESSAGE = "Message was posted";
+    private static final String ROUTES = "routes", LOCALHOST = "localhost", PACKAGE_ID = "packageId";
     private static final String SERVER_INFO = "Server online on localhost:8080/\n PRESS ANY KEY TO STOP";
 
     public static void main(String[] args) throws Exception {
+        context = new ZContext();
+        //Открывает два сокета ROUTER.
+        sClient = context.createSocket(SocketType.ROUTER);
+        sStorage = context.createSocket(SocketType.ROUTER);
+        sClient.bind("tcp://localhost:8001");
+        sStorage.bind("tcp://localhost:8002");
+        System.out.println("Start");
+        poll = context.createPoller(2);
+        //От одного принимаются команды от клиентов.
+        poll.register(sClient, ZMQ.Poller.POLLIN);
+        //От другого принимаются - команды NOTIFY.
+        poll.register(sStorage, ZMQ.Poller.POLLIN);
+
         //Actor system обеспечивает запуск акторов пересылку сообщений и т.д.
         ActorSystem system = ActorSystem.create(ROUTES);
         mainActor = system.actorOf(Props.create(MainActor.class));
         //Все взаимодействие с актором после его создания происходит с помощью ActorRef
+
         //Инициализируем http систему с помощью high level api
         final Http http = Http.get(system);
         //Создаем ActorMaterializer
         final ActorMaterializer materializer = ActorMaterializer.create(system);
         JSAkkaTester app = new JSAkkaTester();
+        //Входящий http flow
         final Flow<HttpRequest, HttpResponse, NotUsed> routeFlow = app.jsTesterRoute().flow(system, materializer);
+
         final CompletionStage<ServerBinding> binding = http.bindAndHandle(
                 routeFlow,
                 ConnectHttp.toHost(LOCALHOST, SERVER_PORT),
                 materializer
         );
 
+        //Выводим информацию о сервере
         System.out.println(SERVER_INFO);
         System.in.read();
-
+        context.destroySocket(sClient);
+        context.destroySocket(sStorage);
+        context.destroy();
         binding.thenCompose(ServerBinding::unbind).thenAccept(unbound -> system.terminate());
     }
 

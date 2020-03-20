@@ -3,17 +3,11 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 public class Test {
-    private static final String PARAMS = "params";
-    private static final String TEST_NAME = "name";
-    private static final String EMPTY_RESULT = "NONE";
-    private static final String EMPTY_CHECKER = "NOT READY YET";
-    private static final String EXPECTED_RESULT = "expectedResult";
-
-    private String result;
-    private String checker;
-    private final String testName;
+    private static final String PARAMS = "params", TEST_NAME = "name", EMPTY_RESULT = "NONE";
+    private static final String EMPTY_CHECKER = "NOT READY YET", EXPECTED_RESULT = "expectedResult";
     private final Object[] params;
-    private final String expectedResult;
+    private String result, checker;
+    private final String testName, expectedResult;
 
     //Присваиваем параметры для тела тест
     @JsonCreator
