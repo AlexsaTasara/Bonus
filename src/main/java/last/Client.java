@@ -13,6 +13,7 @@ public class Client {
         System.out.println("Client start on tcp://localhost:8001");
         //Читает команды из консоли и отправляет их в прокси.
         Scanner in = new Scanner(System.in);
+        //Пока не будет подана команда Stop отправляем все написанные сообщения в JSAkkaTester
         while (true) {
             String message = in.nextLine();
             if (message.equals("STOP")){
@@ -23,6 +24,7 @@ public class Client {
         context.destroySocket(socket);
         context.destroy();
     }
+    //Отправляем сообщение в JSAkkaTester и ждем ответ от него. Ответ выводим на экран.
     private static void sendAndListen(String message) {
         ZFrame frame = new ZFrame(message);
         frame.send(socket, 0);

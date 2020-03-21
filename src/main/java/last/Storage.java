@@ -16,6 +16,7 @@ public class Storage {
         //Открывает сокет DEALER, подключается к центральному прокси.
         ZMQ.Socket socket = context.createSocket(SocketType.DEALER);
         socket.connect("tcp://localhost:8002");
+        System.out.println("Storage start on tcp://localhost:8002");
         storage = new HashMap<>();
         Scanner in = new Scanner(System.in);
         int start = in.nextInt();

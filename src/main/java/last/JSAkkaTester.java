@@ -33,6 +33,7 @@ public class  JSAkkaTester extends AllDirectives {
     private static final String SERVER_INFO = "Server online on localhost:8080/\n PRESS ANY KEY TO STOP";
 
     public static void main(String[] args) throws Exception {
+        /*
         context = new ZContext();
         //Открывает два сокета ROUTER.
         sClient = context.createSocket(SocketType.ROUTER);
@@ -45,7 +46,7 @@ public class  JSAkkaTester extends AllDirectives {
         poll.register(sClient, ZMQ.Poller.POLLIN);
         //От другого принимаются - команды NOTIFY.
         poll.register(sStorage, ZMQ.Poller.POLLIN);
-
+        */
         //Actor system обеспечивает запуск акторов пересылку сообщений и т.д.
         ActorSystem system = ActorSystem.create(ROUTES);
         mainActor = system.actorOf(Props.create(MainActor.class));
@@ -64,10 +65,44 @@ public class  JSAkkaTester extends AllDirectives {
                 ConnectHttp.toHost(LOCALHOST, SERVER_PORT),
                 materializer
         );
+        /*
+        while (poll.poll(3000) != -1) {
+            //Сообщения от клиента имеют индекс 0
+            if (poll.pollin(0)){
+                ZMsg recv = ZMsg.recvMsg(sClient);
+                String msg = new String(recv.getLast().getData(), ZMQ.CHARSET);
+                String[] msgSplit = msg.split(" ");
+                String command = msgSplit[0];
+                System.out.println(msgSplit[0] + " " + msgSplit[1]);
+                if (command.equals("GET")){
+
+                } else if (command.equals("PUT")){
+
+                }
+                //С помощью команд NOTIFY ведется актуальный список подключенных частей кэша.
+                //Собщения от хранилища имеют индекс 1
+            }
+            else if (poll.pollin(1)){
+                //Получаем сообщение из Хранилища
+                ZMsg recv = ZMsg.recvMsg(sStorage);
+                ZFrame frame = recv.unwrap();
+                String id = new String(frame.getData(), ZMQ.CHARSET);
+                String msg = new String(recv.getFirst().getData(), ZMQ.CHARSET);
+                String[] msgSplit = msg.split(" ");
+                String command = msgSplit[0];
+                if (command.equals("INIT")) {
+                }else if (command.equals("TIMEOUT")){
+                } else {recv.send(sClient);}
+            }
+            //Повторяем
+            System.out.println("Proxy loop...");
+        }
+        */
 
         //Выводим информацию о сервере
         System.out.println(SERVER_INFO);
         System.in.read();
+        //Закрываем сокеты
         context.destroySocket(sClient);
         context.destroySocket(sStorage);
         context.destroy();
