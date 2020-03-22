@@ -1,5 +1,6 @@
 package last;
 import akka.actor.ActorRef;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import javafx.util.Pair;
 import org.zeromq.*;
 
@@ -7,9 +8,8 @@ import javax.script.Invocable;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
-import java.util.Map;
-import java.util.Scanner;
-import java.util.HashMap;
+import java.io.IOException;
+
 //Исполняет один тест из пакета.
 public class Executer {
     private static final String JS_ENGINE = "nashorn";
@@ -17,17 +17,14 @@ public class Executer {
     private static long timeout;
     private static ZContext context;
     private static ZMQ.Poller poller;
-    private static Map<Integer, String> storage;
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws ScriptException, NoSuchMethodException, IOException {
         context = new ZContext();
         //Открывает сокет DEALER, подключается к mainActor
         ZMQ.Socket socket = context.createSocket(SocketType.DEALER);
         socket.connect("tcp://localhost:8003");
-
-        storage = new HashMap<>();
         //Пишем сообщение где хранилище, если подключились и задали размеры хранилища
-        System.out.println("Storage start on tcp://localhost:8003");
+        System.out.println("Executer start on tcp://localhost:8003");
 
         //Принимаем сообщения от JSAkkaTester
         poller = context.createPoller(1);
@@ -40,9 +37,25 @@ public class Executer {
             isTimeout(socket);
             //Если получили сообщение от него
             if (poller.pollin(0)){
-                /*
                 ZMsg recv = ZMsg.recvMsg(socket);
-                Pair<Integer, FunctionPackage> msg = //recv.getMsg();
+                String all = new String(recv.getLast().getData(), ZMQ.CHARSET);
+                /*
+                String packId = recv.popString();
+                System.out.println(packId);
+                String jss = recv.popString();
+                System.out.println(jss);
+                String fn = recv.popString();
+                System.out.println(fn);
+                String tests = recv.popString();
+                while(recv!=null){
+                    tests+= recv.popString();
+                }
+                System.out.println(tests);
+                String all = packId + jss + fn + tests;
+                 */
+                ObjectMapper objectMapper = new ObjectMapper();
+                ExecuteMSG r = objectMapper.readValue(all, ExecuteMSG.class);
+                Pair<Integer, FunctionPackage> msg = r.getMsg();
                 int index = msg.getKey();
                 FunctionPackage functionPackage = msg.getValue();
                 //Получаем тесты
@@ -62,11 +75,13 @@ public class Executer {
                 //Создаем сообщение о команде
                 StorageMSG storageMSG = new StorageMSG(res, test.getExpectedResult(), check,test.getParams(), test.getTestName());
                 StorageCommand storageCommand = new StorageCommand(functionPackage.getPackageId(), storageMSG);
+                String gfg = objectMapper.writeValueAsString(storageCommand);
                 //Отправляем сообщение о команде
-                getSender().tell(storageCommand, ActorRef.noSender());
+                //getSender().tell(storageCommand, ActorRef.noSender());
+                ZMsg se = new ZMsg();
+                se.add(gfg);
 
-                 */
-                //poller.send()
+                se.send(socket);
             }
         }
         //Заканчиваем работу и закрывааем сокеты
@@ -81,18 +96,5 @@ public class Executer {
             ZFrame frame = new ZFrame("TIMEOUT");
             frame.send(socket, 0);
         }
-    }
-    //Выполнение команд GET и PUT, нужно их заменить
-    private static void sendP(int key, String val, ZMsg recv) {
-        storage.put(key, val);
-        recv.destroy();
-        System.out.println("PUT | key: " + key + " | val: " + val);
-    }
-
-    private static void sendG(int key, ZMsg recv, ZMQ.Socket socket) {
-        String answer = storage.getOrDefault(key, "ex");
-        recv.getLast().reset(answer);
-        recv.send(socket);
-        System.out.println("GET | key: " + key);
     }
 }

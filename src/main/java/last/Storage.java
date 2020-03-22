@@ -1,6 +1,9 @@
 package last;
+import akka.actor.ActorRef;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.zeromq.*;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Map;
 import java.util.Scanner;
@@ -10,12 +13,15 @@ public class Storage {
     private static long timeout;
     private static ZContext context;
     private static ZMQ.Poller poller;
+    private static ZMQ.Socket sMain;
     private static Map<Integer, String> storage;
-    private HashMap<Integer, ArrayList<StorageMSG>> data = new HashMap<>();
 
-    public static void main(String[] args) {
+    private static HashMap<Integer, ArrayList<StorageMSG>> data = new HashMap<>();
+
+    public static void main(String[] args) throws IOException {
         context = new ZContext();
         //Открывает сокет DEALER, подключается к JSAkkaTester
+        //sMain = context.createSocket(SocketType.REQ);
         ZMQ.Socket socket = context.createSocket(SocketType.DEALER);
         socket.connect("tcp://localhost:8002");
 
@@ -29,9 +35,10 @@ public class Storage {
         initFrame.send(socket, 0);
         //Пишем сообщение где хранилище, если подключились и задали размеры хранилища
         System.out.println("Storage start on tcp://localhost:8002");
-
+        ObjectMapper objectMapper = new ObjectMapper();
         //Принимаем сообщения от JSAkkaTester
-        poller = context.createPoller(1);
+        poller = context.createPoller(2);
+        poller.register(socket, ZMQ.Poller.POLLIN);
         poller.register(socket, ZMQ.Poller.POLLIN);
         //Задаем интервал остановки
         timeout = System.currentTimeMillis() + 3000;
@@ -39,25 +46,41 @@ public class Storage {
             //После подключения с определнным интервалом времени высылает сообщение NOTIFY в котором сообщает
             //интервал хранимых значений.
             isTimeout(socket);
-            //Если получили сообщение от него
+            //Если получили сообщение от main
             if (poller.pollin(0)){
                 ZMsg recv = ZMsg.recvMsg(socket);
-                //Если размер сообщения равен трем словам, тогда
-                if (recv.size() == 3) {
-                    //Делим сообщение на слова
-                    String[] message = recv.getLast().toString().split(" ");
-                    //Первое слово команда, второе и третье параметры
-                    String command = message[0];
-                    //На извлечение ячейки.
-                    if (command.equals("GET")){
-                        int key = Integer.parseInt(message[1]);
-                        sendG(key, recv, socket);
-                    //На изменение ячейки кэша.
-                    } else if (command.equals("PUT")){
-                        int key = Integer.parseInt(message[1]);
-                        String val = message[2];
-                        sendP(key, val, recv);
+                String msg = new String(recv.getLast().getData(), ZMQ.CHARSET);
+                GetMSG m = objectMapper.readValue(msg, GetMSG.class);
+                //Настроить!
+                ZMsg z = new ZMsg();
+                z.add(data.get(m.getPackageId()).toString());
+
+
+                //Отправляем сообщение
+                z.send(socket);
+                /*
+                getSender().tell(
+                        data.get(msg.getPackageId()).toArray(),
+                        ActorRef.noSender()
+                );
+                */
+            }
+            else{
+                //Если получили сообщение от исполнителя
+                if(poller.pollin(1)){
+                    ZMsg recv = ZMsg.recvMsg(socket);
+                    String msg = new String(recv.getLast().getData(), ZMQ.CHARSET);
+                    StorageCommand com = objectMapper.readValue(msg, StorageCommand.class);
+                    if (data.containsKey(com.getPackageID())) {
+                        ArrayList<StorageMSG> tests = data.get(com.getPackageID());
+                        tests.add(com.getStorageMSG());
+                        data.put(com.getPackageID(), tests);
+                    } else {
+                        ArrayList<StorageMSG> tests = new ArrayList<>();
+                        tests.add(com.getStorageMSG());
+                        data.put(com.getPackageID(), tests);
                     }
+
                 }
             }
         }
@@ -73,18 +96,5 @@ public class Storage {
             ZFrame frame = new ZFrame("TIMEOUT");
             frame.send(socket, 0);
         }
-    }
-    //Выполнение команд GET и PUT, нужно их заменить
-    private static void sendP(int key, String val, ZMsg recv) {
-        storage.put(key, val);
-        recv.destroy();
-        System.out.println("PUT | key: " + key + " | val: " + val);
-    }
-
-    private static void sendG(int key, ZMsg recv, ZMQ.Socket socket) {
-        String answer = storage.getOrDefault(key, "ex");
-        recv.getLast().reset(answer);
-        recv.send(socket);
-        System.out.println("GET | key: " + key);
     }
 }

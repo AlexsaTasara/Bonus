@@ -57,7 +57,6 @@ public class  JSAkkaTester extends AllDirectives {
         poll = context.createPoller(2);
         //От одного принимаются команды от клиентов.
         poll.register(sClient, ZMQ.Poller.POLLIN);
-        //От другого принимаются - команды NOTIFY.
         poll.register(sStorage, ZMQ.Poller.POLLIN);
         poll.register(sExecuter, ZMQ.Poller.POLLIN);
 
