@@ -1,34 +1,33 @@
 package last;
+import akka.actor.ActorRef;
+import javafx.util.Pair;
 import org.zeromq.*;
 
-import java.util.ArrayList;
+import javax.script.Invocable;
+import javax.script.ScriptEngine;
+import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.HashMap;
-
-public class Storage {
+//Исполняет один тест из пакета.
+public class Executer {
+    private static final String JS_ENGINE = "nashorn";
+    private static final String WRONG_ANSWER = "WRONG ANSWER!", CORRECT_ANSWER = "CORRECT ANSWER!";
     private static long timeout;
     private static ZContext context;
     private static ZMQ.Poller poller;
     private static Map<Integer, String> storage;
-    private HashMap<Integer, ArrayList<StorageMSG>> data = new HashMap<>();
 
     public static void main(String[] args) {
         context = new ZContext();
-        //Открывает сокет DEALER, подключается к JSAkkaTester
+        //Открывает сокет DEALER, подключается к mainActor
         ZMQ.Socket socket = context.createSocket(SocketType.DEALER);
-        socket.connect("tcp://localhost:8002");
+        socket.connect("tcp://localhost:8003");
 
         storage = new HashMap<>();
-        //Задаем размеры хранилища
-        Scanner in = new Scanner(System.in);
-        int start = in.nextInt();
-        int end = in.nextInt();
-
-        ZFrame initFrame = new ZFrame("INIT" + " " + start + " " + end);
-        initFrame.send(socket, 0);
         //Пишем сообщение где хранилище, если подключились и задали размеры хранилища
-        System.out.println("Storage start on tcp://localhost:8002");
+        System.out.println("Storage start on tcp://localhost:8003");
 
         //Принимаем сообщения от JSAkkaTester
         poller = context.createPoller(1);
@@ -41,24 +40,32 @@ public class Storage {
             isTimeout(socket);
             //Если получили сообщение от него
             if (poller.pollin(0)){
+                /*
                 ZMsg recv = ZMsg.recvMsg(socket);
-                //Если размер сообщения равен трем словам, тогда
-                if (recv.size() == 3) {
-                    //Делим сообщение на слова
-                    String[] message = recv.getLast().toString().split(" ");
-                    //Первое слово команда, второе и третье параметры
-                    String command = message[0];
-                    //На извлечение ячейки.
-                    if (command.equals("GET")){
-                        int key = Integer.parseInt(message[1]);
-                        sendG(key, recv, socket);
-                    //На изменение ячейки кэша.
-                    } else if (command.equals("PUT")){
-                        int key = Integer.parseInt(message[1]);
-                        String val = message[2];
-                        sendP(key, val, recv);
-                    }
+                Pair<Integer, FunctionPackage> msg = //recv.getMsg();
+                int index = msg.getKey();
+                FunctionPackage functionPackage = msg.getValue();
+                //Получаем тесты
+                Test test = functionPackage.getTests()[index];
+                ScriptEngine engine = new ScriptEngineManager().getEngineByName(JS_ENGINE);
+                try{
+                    engine.eval(functionPackage.getJSScript());
+                } catch (ScriptException e){
+                    e.printStackTrace();
                 }
+                Invocable invocable = (Invocable) engine;
+                String res = invocable.invokeFunction(functionPackage.getFunctionName(), test.getParams()).toString();
+                String check = WRONG_ANSWER;
+                if(res.equals(test.getExpectedResult())){
+                    check = CORRECT_ANSWER;
+                }
+                //Создаем сообщение о команде
+                StorageMSG storageMSG = new StorageMSG(res, test.getExpectedResult(), check,test.getParams(), test.getTestName());
+                StorageCommand storageCommand = new StorageCommand(functionPackage.getPackageId(), storageMSG);
+                //Отправляем сообщение о команде
+                getSender().tell(storageCommand, ActorRef.noSender());
+
+                 */
             }
         }
         //Заканчиваем работу и закрывааем сокеты

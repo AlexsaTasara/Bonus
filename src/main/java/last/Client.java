@@ -1,7 +1,7 @@
 package last;
 import org.zeromq.*;
 import java.util.Scanner;
-
+//Клиент нам может вообще не понадобится, так что, RIP. Его нужно будет удалить.
 public class Client {
     private static ZMQ.Socket socket;
 

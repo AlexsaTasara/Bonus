@@ -20,13 +20,20 @@ import akka.http.javadsl.server.AllDirectives;
 import akka.http.javadsl.marshallers.jackson.Jackson;
 //Подключаем ZeroMQ
 import org.zeromq.*;
+import akka.zeromq.Bind;
+import akka.zeromq.Connect;
+import akka.zeromq.Listener;
+import akka.zeromq.Subscribe;
+import akka.zeromq.ZeroMQExtension;
+
 
 public class  JSAkkaTester extends AllDirectives {
     //Добавляю коментарий для проверки работы
     static ActorRef mainActor;
     private static ZMQ.Poller poll;
     private static ZContext context;
-    private static ZMQ.Socket sClient,sStorage;
+    private static ArrayList<Cache> caches;
+    private static ZMQ.Socket sClient,sStorage,sExecuter,pubSocket;
     private static final int SERVER_PORT = 8080, TIMEOUT_MILLIS = 5000;
     private static final String POST_MESSAGE = "Message was posted";
     private static final String ROUTES = "routes", LOCALHOST = "localhost", PACKAGE_ID = "packageId";
@@ -35,35 +42,48 @@ public class  JSAkkaTester extends AllDirectives {
     public static void main(String[] args) throws Exception {
         /*
         context = new ZContext();
+        caches = new ArrayList<>();
         //Открывает два сокета ROUTER.
         sClient = context.createSocket(SocketType.ROUTER);
         sStorage = context.createSocket(SocketType.ROUTER);
+        sExecuter = context.createSocket(SocketType.ROUTER);
         sClient.bind("tcp://localhost:8001");
         sStorage.bind("tcp://localhost:8002");
+        sExecuter.bind("tcp://localhost:8003");
         System.out.println("Start");
         poll = context.createPoller(2);
         //От одного принимаются команды от клиентов.
         poll.register(sClient, ZMQ.Poller.POLLIN);
         //От другого принимаются - команды NOTIFY.
         poll.register(sStorage, ZMQ.Poller.POLLIN);
-        */
+        poll.register(sExecuter, ZMQ.Poller.POLLIN);
+
+         */
         //Actor system обеспечивает запуск акторов пересылку сообщений и т.д.
         ActorSystem system = ActorSystem.create(ROUTES);
         mainActor = system.actorOf(Props.create(MainActor.class));
         //Все взаимодействие с актором после его создания происходит с помощью ActorRef
 
+        ActorRef pubSocket = ZeroMQExtension.get(system).newPubSocket(
+                new Bind("tcp://127.0.0.1:1233"));
+        ActorRef listener = system.actorOf(Props.create(NewStorageActor.class));
+        ActorRef subSocket = ZeroMQExtension.get(system).newSubSocket(
+                new Connect("tcp://127.0.0.1:1233"),
+                new Listener(listener), Subscribe.all());
+
         //Инициализируем http систему с помощью high level api
         final Http http = Http.get(system);
+        JSAkkaTester app = new JSAkkaTester();
+
         //Создаем ActorMaterializer
         final ActorMaterializer materializer = ActorMaterializer.create(system);
-        JSAkkaTester app = new JSAkkaTester();
+
         //Входящий http flow
+        //Стоит ли его менять? Убрать materializer?
         final Flow<HttpRequest, HttpResponse, NotUsed> routeFlow = app.jsTesterRoute().flow(system, materializer);
 
         final CompletionStage<ServerBinding> binding = http.bindAndHandle(
-                routeFlow,
-                ConnectHttp.toHost(LOCALHOST, SERVER_PORT),
-                materializer
+                routeFlow, ConnectHttp.toHost(LOCALHOST, SERVER_PORT), materializer
         );
         /*
         while (poll.poll(3000) != -1) {
@@ -103,32 +123,44 @@ public class  JSAkkaTester extends AllDirectives {
         System.out.println(SERVER_INFO);
         System.in.read();
         //Закрываем сокеты
+        /*
         context.destroySocket(sClient);
         context.destroySocket(sStorage);
         context.destroy();
+
+         */
         binding.thenCompose(ServerBinding::unbind).thenAccept(unbound -> system.terminate());
     }
 
-    private Route jsTesterRoute() {
-        return concat(
-                get(
-                        //В случае запроса на получение информции о тесте — используем Putterns.ask и возвращаем Future с ответом
-                        () -> parameter(PACKAGE_ID, (packageId) ->
-                                {
-                                    //позволяет отправить сообщение и получить Future с ответным сообщением
-                                    Future<Object> result = Patterns.ask(mainActor,
-                                            new GetMSG(Integer.parseInt(packageId)),
-                                            TIMEOUT_MILLIS);
-                                    return completeOKWithFuture(result, Jackson.marshaller());
-                                }
-                        )
-                ),
-                post(
-                        () -> entity(Jackson.unmarshaller(FunctionPackage.class),
-                                msg -> {
-                                    //отправляет сообщение
-                                    mainActor.tell(msg, ActorRef.noSender());
-                                    return complete(POST_MESSAGE);
-                                })));
+    private Route jsTesterRoute() { return
+        concat(
+            get(
+                //В случае запроса на получение информции о тесте — используем Putterns.ask и возвращаем Future с ответом
+                () -> parameter(PACKAGE_ID, (packageId) -> {
+                        //позволяет отправить сообщение и получить Future с ответным сообщением
+                        Future<Object> result = Patterns.ask(mainActor, new GetMSG(Integer.parseInt(packageId)), TIMEOUT_MILLIS);
+                        return completeOKWithFuture(result, Jackson.marshaller());
+                    }
+                )
+            ),
+            post(
+                () -> entity(Jackson.unmarshaller(FunctionPackage.class),
+                    msg -> {
+                        //отправляет сообщение
+                        mainActor.tell(msg, ActorRef.noSender());
+                        return complete(POST_MESSAGE);
+                    }
+                )
+            )
+        );
     }
+
+    private static void changeTimeout(String id) {
+        for (Cache cache : caches) {
+            if (cache.checkID(id)) {
+                cache.setTimeout(System.currentTimeMillis());
+            }
+        }
+    }
+
 }

@@ -6,13 +6,13 @@ import akka.japi.pf.ReceiveBuilder;
 //Актор который хранит результаты тестов после их выполнения
 public class StorageActor extends AbstractActor {
     private HashMap<Integer, ArrayList<StorageMSG>> data = new HashMap<>();
+    //При получении сообщения
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create()
                 //cообщение с результатом одного теста -> кладет его в локальное хранилище.
                 .match(
-                        GetMSG.class,
-                        req ->
+                        GetMSG.class, req ->
                                 //отправляет сообщение
                                 getSender().tell(
                                         data.get(req.getPackageId()).toArray(),

@@ -12,7 +12,7 @@ import javax.script.ScriptEngineManager;
 public class JSExecActor extends AbstractActor {
     private static final String JS_ENGINE = "nashorn";
     private static final String WRONG_ANSWER = "WRONG ANSWER!", CORRECT_ANSWER = "CORRECT ANSWER!";
-
+    //При получении сообщения
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create().match(ExecuteMSG.class, m -> {

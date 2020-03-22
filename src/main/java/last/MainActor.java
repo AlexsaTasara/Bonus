@@ -16,7 +16,7 @@ public class MainActor extends AbstractActor {
         storage = getContext().actorOf(Props.create(StorageActor.class));
         executors = getContext().actorOf(new RoundRobinPool(NUM_ROUND_ROBIN_POOL).props(Props.create(JSExecActor.class)));
     }
-
+    //При получении сообщения
     @Override
     public Receive createReceive() {
         return ReceiveBuilder.create().match(
