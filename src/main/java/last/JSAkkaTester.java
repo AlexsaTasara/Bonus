@@ -20,16 +20,16 @@ import akka.http.javadsl.server.AllDirectives;
 import akka.http.javadsl.marshallers.jackson.Jackson;
 //Подключаем ZeroMQ
 import org.zeromq.*;
+
 /*
+import akka.zeromq.ZeroMQExtension;
 import akka.zeromq.Bind;
+
 import akka.zeromq.Connect;
 import akka.zeromq.Listener;
 import akka.zeromq.Subscribe;
-import akka.zeromq.ZeroMQExtension;
+*/
 
-
-
- */
 public class  JSAkkaTester extends AllDirectives {
     //Добавляю коментарий для проверки работы
     static ActorRef mainActor, newMainActor;
@@ -43,7 +43,7 @@ public class  JSAkkaTester extends AllDirectives {
     private static final String SERVER_INFO = "Server online on localhost:8080/\n PRESS ANY KEY TO STOP";
 
     public static void main(String[] args) throws Exception {
-        /*
+
         context = new ZContext();
         caches = new ArrayList<>();
         //Открывает два сокета ROUTER.
@@ -61,12 +61,13 @@ public class  JSAkkaTester extends AllDirectives {
         poll.register(sStorage, ZMQ.Poller.POLLIN);
         poll.register(sExecuter, ZMQ.Poller.POLLIN);
 
-         */
+
         //Actor system обеспечивает запуск акторов пересылку сообщений и т.д.
         ActorSystem system = ActorSystem.create(ROUTES);
-        mainActor = system.actorOf(Props.create(MainActor.class));
-        newMainActor = system.actorOf(Props.create(MainActor.class));
+        //mainActor = system.actorOf(Props.create(MainActor.class));
+        newMainActor = system.actorOf(Props.create(NewMainActor.class));
         //Все взаимодействие с актором после его создания происходит с помощью ActorRef
+        //newMainActor = ZeroMQExtension.get(system).newSocket();
         /*
         ActorRef pubSocket = ZeroMQExtension.get(system).newPubSocket(
                 new Bind("tcp://127.0.0.1:1233"));
@@ -74,9 +75,8 @@ public class  JSAkkaTester extends AllDirectives {
         ActorRef subSocket = ZeroMQExtension.get(system).newSubSocket(
                 new Connect("tcp://127.0.0.1:1233"),
                 new Listener(listener), Subscribe.all());
-
-
          */
+
         //Инициализируем http систему с помощью high level api
         final Http http = Http.get(system);
         JSAkkaTester app = new JSAkkaTester();
@@ -85,7 +85,6 @@ public class  JSAkkaTester extends AllDirectives {
         final ActorMaterializer materializer = ActorMaterializer.create(system);
 
         //Входящий http flow
-        //Стоит ли его менять? Убрать materializer?
         final Flow<HttpRequest, HttpResponse, NotUsed> routeFlow = app.jsTesterRoute().flow(system, materializer);
 
         final CompletionStage<ServerBinding> binding = http.bindAndHandle(

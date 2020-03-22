@@ -22,6 +22,7 @@ public class NewMainActor extends UntypedActor {
             int len = fp.getTests().length;
             for (int idx = 0; idx < len; idx++) {
                 //Отправляем сообщение на иполнение
+                //Нужно настроить
                 executer.tell(new ExecuteMSG(idx, fp), storage);
             }
         }
@@ -38,5 +39,4 @@ public class NewMainActor extends UntypedActor {
             }
         }
     }
-
 }
