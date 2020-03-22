@@ -20,6 +20,7 @@ import akka.http.javadsl.server.AllDirectives;
 import akka.http.javadsl.marshallers.jackson.Jackson;
 //Подключаем ZeroMQ
 import org.zeromq.*;
+/*
 import akka.zeromq.Bind;
 import akka.zeromq.Connect;
 import akka.zeromq.Listener;
@@ -27,9 +28,11 @@ import akka.zeromq.Subscribe;
 import akka.zeromq.ZeroMQExtension;
 
 
+
+ */
 public class  JSAkkaTester extends AllDirectives {
     //Добавляю коментарий для проверки работы
-    static ActorRef mainActor;
+    static ActorRef mainActor, newMainActor;
     private static ZMQ.Poller poll;
     private static ZContext context;
     private static ArrayList<Cache> caches;
@@ -62,8 +65,9 @@ public class  JSAkkaTester extends AllDirectives {
         //Actor system обеспечивает запуск акторов пересылку сообщений и т.д.
         ActorSystem system = ActorSystem.create(ROUTES);
         mainActor = system.actorOf(Props.create(MainActor.class));
+        newMainActor = system.actorOf(Props.create(MainActor.class));
         //Все взаимодействие с актором после его создания происходит с помощью ActorRef
-
+        /*
         ActorRef pubSocket = ZeroMQExtension.get(system).newPubSocket(
                 new Bind("tcp://127.0.0.1:1233"));
         ActorRef listener = system.actorOf(Props.create(NewStorageActor.class));
@@ -71,6 +75,8 @@ public class  JSAkkaTester extends AllDirectives {
                 new Connect("tcp://127.0.0.1:1233"),
                 new Listener(listener), Subscribe.all());
 
+
+         */
         //Инициализируем http систему с помощью high level api
         final Http http = Http.get(system);
         JSAkkaTester app = new JSAkkaTester();
@@ -85,39 +91,6 @@ public class  JSAkkaTester extends AllDirectives {
         final CompletionStage<ServerBinding> binding = http.bindAndHandle(
                 routeFlow, ConnectHttp.toHost(LOCALHOST, SERVER_PORT), materializer
         );
-        /*
-        while (poll.poll(3000) != -1) {
-            //Сообщения от клиента имеют индекс 0
-            if (poll.pollin(0)){
-                ZMsg recv = ZMsg.recvMsg(sClient);
-                String msg = new String(recv.getLast().getData(), ZMQ.CHARSET);
-                String[] msgSplit = msg.split(" ");
-                String command = msgSplit[0];
-                System.out.println(msgSplit[0] + " " + msgSplit[1]);
-                if (command.equals("GET")){
-
-                } else if (command.equals("PUT")){
-
-                }
-                //С помощью команд NOTIFY ведется актуальный список подключенных частей кэша.
-                //Собщения от хранилища имеют индекс 1
-            }
-            else if (poll.pollin(1)){
-                //Получаем сообщение из Хранилища
-                ZMsg recv = ZMsg.recvMsg(sStorage);
-                ZFrame frame = recv.unwrap();
-                String id = new String(frame.getData(), ZMQ.CHARSET);
-                String msg = new String(recv.getFirst().getData(), ZMQ.CHARSET);
-                String[] msgSplit = msg.split(" ");
-                String command = msgSplit[0];
-                if (command.equals("INIT")) {
-                }else if (command.equals("TIMEOUT")){
-                } else {recv.send(sClient);}
-            }
-            //Повторяем
-            System.out.println("Proxy loop...");
-        }
-        */
 
         //Выводим информацию о сервере
         System.out.println(SERVER_INFO);

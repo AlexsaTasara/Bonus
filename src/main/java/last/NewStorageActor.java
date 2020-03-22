@@ -9,6 +9,8 @@ public class NewStorageActor extends UntypedActor {
     public void onReceive(Object message) throws Exception {
         if (message instanceof GetMSG) {
             GetMSG msg = (GetMSG)message;
+
+            //Настроить!
             getSender().tell(
                     data.get(msg.getPackageId()).toArray(),
                     ActorRef.noSender()
@@ -26,6 +28,9 @@ public class NewStorageActor extends UntypedActor {
                     tests.add(com.getStorageMSG());
                     data.put(com.getPackageID(), tests);
                 }
+            }
+            else{
+                unhandled(message);
             }
         }
     }

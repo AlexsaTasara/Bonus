@@ -66,6 +66,7 @@ public class Executer {
                 getSender().tell(storageCommand, ActorRef.noSender());
 
                  */
+                //poller.send()
             }
         }
         //Заканчиваем работу и закрывааем сокеты
