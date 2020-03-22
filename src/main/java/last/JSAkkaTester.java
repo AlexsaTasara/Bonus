@@ -96,12 +96,6 @@ public class  JSAkkaTester extends AllDirectives {
         System.out.println(SERVER_INFO);
         System.in.read();
         //Закрываем сокеты
-        /*
-        context.destroySocket(sClient);
-        context.destroySocket(sStorage);
-        context.destroy();
-
-         */
         binding.thenCompose(ServerBinding::unbind).thenAccept(unbound -> system.terminate());
     }
 
@@ -111,7 +105,7 @@ public class  JSAkkaTester extends AllDirectives {
                 //В случае запроса на получение информции о тесте — используем Putterns.ask и возвращаем Future с ответом
                 () -> parameter(PACKAGE_ID, (packageId) -> {
                         //позволяет отправить сообщение и получить Future с ответным сообщением
-                        Future<Object> result = Patterns.ask(mainActor, new GetMSG(Integer.parseInt(packageId)), TIMEOUT_MILLIS);
+                        Future<Object> result = Patterns.ask(newMainActor, new GetMSG(Integer.parseInt(packageId)), TIMEOUT_MILLIS);
                         return completeOKWithFuture(result, Jackson.marshaller());
                     }
                 )
@@ -120,20 +114,11 @@ public class  JSAkkaTester extends AllDirectives {
                 () -> entity(Jackson.unmarshaller(FunctionPackage.class),
                     msg -> {
                         //отправляет сообщение
-                        mainActor.tell(msg, ActorRef.noSender());
+                        newMainActor.tell(msg, ActorRef.noSender());
                         return complete(POST_MESSAGE);
                     }
                 )
             )
         );
     }
-
-    private static void changeTimeout(String id) {
-        for (Cache cache : caches) {
-            if (cache.checkID(id)) {
-                cache.setTimeout(System.currentTimeMillis());
-            }
-        }
-    }
-
 }
