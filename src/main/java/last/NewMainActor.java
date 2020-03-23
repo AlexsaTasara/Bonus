@@ -50,9 +50,16 @@ public class NewMainActor extends UntypedActor {
                 //Отправляем сообщение на иполнение
                 //Нужно настроить
                 ExecuteMSG ex = new ExecuteMSG(idx, fp);
+                ExecMSG ex1 = new ExecMSG(idx,fp);
+                System.out.println(fp.getJSScript());
                 executer.tell(ex, storage);
 
-                String gfg = objectMapper.writeValueAsString(ex);
+                String gfg = objectMapper.writeValueAsString(ex1);
+
+
+                //gfg уже имеет jsscript вместо jsScript
+
+                System.out.println(gfg);
                 ZMsg se = new ZMsg();
                 se.add(gfg);
                 //Отправляем сообщение в Исполнителю

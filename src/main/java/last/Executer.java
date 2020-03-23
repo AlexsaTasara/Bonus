@@ -60,21 +60,26 @@ public class Executer {
                 String all = packId + jss + fn + tests;
                  */
 
-                //Сообщение которое получает исполнитель.
-//{"msg":{"key":0,"value":{"packageId":11,"functionName":"divideFn","tests":[{"expectedResult":"2.0","params":[2,1],"result":"NONE","checker":"NOT READY YET","testName":"test1"},{"expectedResult":"2.0","params":[4,2],"result":"NONE","checker":"NOT READY YET","testName":"test2"}],"jsscript":"var divideFn = function(a,b) { return a/b} "}}}
-                //readValue не может его преобразовать и выводит ошибку
 
-                //Cannot construct instance of `last.ExecuteMSG` (no Creators, like default construct, exist):
-                //cannot deserialize from Object value (no delegate- or property-based Creator) at [Source: ... Строка написанная выше ... ]
+                System.out.println(all);
+
+                all.replaceAll("jsscript", "jsScript");
+
+                //ПОЧЕМУ Я НЕ МОГУ ЕГО ПРОСТО ЗАМЕНИТЬ!
+
 
                 System.out.println(all);
                 ObjectMapper objectMapper = new ObjectMapper();
+                //objectMapper.enableDefaultTyping();
                 //Преобразуем строку в класс тест.
-                ExecuteMSG r = objectMapper.readValue(all, ExecuteMSG.class);
+                //String all2 = all.substring(7,all.length()-1);
+                //System.out.println(all2);
+                ExecMSG r2 = objectMapper.readValue(all, ExecMSG.class);
+                //ExecuteMSG r = objectMapper.readValue(all, ExecuteMSG.class);
                 //Начинаем работать над тестом. Если сообщение и его расшифровка прошли удачно, то весь код ниже не вызовет проблем
-                Pair<Integer, FunctionPackage> msg = r.getMsg();
-                int index = msg.getKey();
-                FunctionPackage functionPackage = msg.getValue();
+                //Pair<Integer, FunctionPackage> msg = r.getMsg();
+                int index = r2.getKey();
+                FunctionPackage functionPackage = r2.getValue();
                 //Получаем тесты
                 Test test = functionPackage.getTests()[index];
                 ScriptEngine engine = new ScriptEngineManager().getEngineByName(JS_ENGINE);
@@ -95,6 +100,7 @@ public class Executer {
 
                 //Преобразуем полученный ответ в строку и добавляем ее в сообщение
                 String gfg = objectMapper.writeValueAsString(storageCommand);
+                System.out.println(gfg);
                 ZMsg se = new ZMsg();
                 se.add(gfg);
 
