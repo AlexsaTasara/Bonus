@@ -5,25 +5,58 @@ import akka.actor.AbstractActor;
 import akka.actor.UntypedActor;
 import akka.japi.pf.ReceiveBuilder;
 import akka.routing.RoundRobinPool;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.zeromq.SocketType;
+import org.zeromq.ZContext;
+import org.zeromq.ZMQ;
+import org.zeromq.ZMsg;
+
+import java.util.ArrayList;
 
 public class NewMainActor extends UntypedActor {
+
+    private static ZMQ.Poller poll;
+    private static ZContext context;
+    private static ArrayList<Cache> caches;
+    private static ZMQ.Socket sStorage,sExecuter;
     private final ActorRef storage;//Хранилище
     private final ActorRef executer;//Исполнители
     //Функция подключения акторов
     // Нужно ли исправлять? Скорее всего да.
     public NewMainActor() {
+        context = new ZContext();
+        //Открывает два сокета ROUTER.
+        //Клиентом я пока вообще не пользуюсь. Его скорее всего придется удалить.
+        sStorage = context.createSocket(SocketType.ROUTER);
+        sExecuter = context.createSocket(SocketType.ROUTER);
+        sStorage.bind("tcp://localhost:8002");
+        sExecuter.bind("tcp://localhost:8003");
+        System.out.println("Start");
+        poll = context.createPoller(2);
+        //От одного принимаются команды от клиентов.
+        poll.register(sStorage, ZMQ.Poller.POLLIN);
+        poll.register(sExecuter, ZMQ.Poller.POLLIN);
         storage = getContext().actorOf(Props.create(NewStorageActor.class));
         executer = getContext().actorOf(Props.create(NewExecuterActor.class));
+        ObjectMapper objectMapper = new ObjectMapper();
     }
     @Override
     public void onReceive(Object message) throws Exception {
+        ObjectMapper objectMapper = new ObjectMapper();
         if(message instanceof FunctionPackage){
             FunctionPackage fp = (FunctionPackage)message;
             int len = fp.getTests().length;
             for (int idx = 0; idx < len; idx++) {
                 //Отправляем сообщение на иполнение
                 //Нужно настроить
-                executer.tell(new ExecuteMSG(idx, fp), storage);
+                ExecuteMSG ex = new ExecuteMSG(idx, fp);
+                executer.tell(ex, storage);
+
+                String gfg = objectMapper.writeValueAsString(ex);
+                ZMsg se = new ZMsg();
+                se.add(gfg);
+                //Отправляем сообщение в Исполнителю
+                se.send(sExecuter);
             }
         }
         else{
@@ -33,6 +66,12 @@ public class NewMainActor extends UntypedActor {
 
                 //Настроить
                 storage.tell(msg, sender());
+
+                String gfg = objectMapper.writeValueAsString(msg);
+                ZMsg se = new ZMsg();
+                se.add(gfg);
+                //Отправляем сообщение в Исполнителю
+                se.send(sStorage);
             }
             else{
                 unhandled(message);

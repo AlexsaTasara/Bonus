@@ -36,17 +36,19 @@ public class  JSAkkaTester extends AllDirectives {
     private static ZMQ.Poller poll;
     private static ZContext context;
     private static ArrayList<Cache> caches;
-    private static ZMQ.Socket sClient,sStorage,sExecuter,pubSocket;
+    private static ZMQ.Socket sClient,sStorage,sExecuter;
     private static final int SERVER_PORT = 8080, TIMEOUT_MILLIS = 5000;
     private static final String POST_MESSAGE = "Message was posted";
     private static final String ROUTES = "routes", LOCALHOST = "localhost", PACKAGE_ID = "packageId";
     private static final String SERVER_INFO = "Server online on localhost:8080/\n PRESS ANY KEY TO STOP";
 
     public static void main(String[] args) throws Exception {
-
+        /*
         context = new ZContext();
         caches = new ArrayList<>();
+
         //Открывает два сокета ROUTER.
+        //Клиентом я пока вообще не пользуюсь. Его скорее всего придется удалить.
         sClient = context.createSocket(SocketType.ROUTER);
         sStorage = context.createSocket(SocketType.ROUTER);
         sExecuter = context.createSocket(SocketType.ROUTER);
@@ -54,12 +56,12 @@ public class  JSAkkaTester extends AllDirectives {
         sStorage.bind("tcp://localhost:8002");
         sExecuter.bind("tcp://localhost:8003");
         System.out.println("Start");
-        poll = context.createPoller(2);
+        poll = context.createPoller(3);
         //От одного принимаются команды от клиентов.
         poll.register(sClient, ZMQ.Poller.POLLIN);
         poll.register(sStorage, ZMQ.Poller.POLLIN);
         poll.register(sExecuter, ZMQ.Poller.POLLIN);
-
+         */
 
         //Actor system обеспечивает запуск акторов пересылку сообщений и т.д.
         ActorSystem system = ActorSystem.create(ROUTES);
@@ -96,6 +98,11 @@ public class  JSAkkaTester extends AllDirectives {
         //Закрываем сокеты
         binding.thenCompose(ServerBinding::unbind).thenAccept(unbound -> system.terminate());
     }
+
+    //Скорее всего это будет происходить так. Future и Patterns.ask мне нужно оставить, значит нужно оставить newMainActor
+    //Тогда в newMainActor будет происходить подключение к сокетам программ Executer и Storage.
+
+
 
     private Route jsTesterRoute() { return
         concat(

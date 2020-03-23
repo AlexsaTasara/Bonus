@@ -20,25 +20,30 @@ public class Executer {
 
     public static void main(String[] args) throws ScriptException, NoSuchMethodException, IOException {
         context = new ZContext();
-        //Открывает сокет DEALER, подключается к mainActor
-        ZMQ.Socket socket = context.createSocket(SocketType.DEALER);
-        socket.connect("tcp://localhost:8003");
+        //Открывает сокет DEALER, подключается к mainActor sStorage
+        ZMQ.Socket sJSAkka = context.createSocket(SocketType.DEALER);
+        ZMQ.Socket sStorage = context.createSocket(SocketType.DEALER);
+        sJSAkka.connect("tcp://localhost:8003");
+        sStorage.connect("tcp://localhost:8002");
         //Пишем сообщение где хранилище, если подключились и задали размеры хранилища
         System.out.println("Executer start on tcp://localhost:8003");
 
         //Принимаем сообщения от JSAkkaTester
         poller = context.createPoller(1);
-        poller.register(socket, ZMQ.Poller.POLLIN);
+        poller.register(sJSAkka, ZMQ.Poller.POLLIN);
         //Задаем интервал остановки
         timeout = System.currentTimeMillis() + 3000;
         while (poller.poll(3000) != -1){
             //После подключения с определнным интервалом времени высылает сообщение NOTIFY в котором сообщает
             //интервал хранимых значений.
-            isTimeout(socket);
-            //Если получили сообщение от него
+            isTimeout(sJSAkka);
+            //Единственный вид сообщений, который может получить исполнитель это тест, результат которого отправляется в хранилище.
             if (poller.pollin(0)){
-                ZMsg recv = ZMsg.recvMsg(socket);
+                System.out.println("Получил сообщение от main");
+                ZMsg recv = ZMsg.recvMsg(sJSAkka);
+                //Преобразуем сообщение в строку
                 String all = new String(recv.getLast().getData(), ZMQ.CHARSET);
+                //Второй способ переноса сообщения в строку. Какой лучше пока не понятно.
                 /*
                 String packId = recv.popString();
                 System.out.println(packId);
@@ -53,8 +58,11 @@ public class Executer {
                 System.out.println(tests);
                 String all = packId + jss + fn + tests;
                  */
+                System.out.println(all);
                 ObjectMapper objectMapper = new ObjectMapper();
+                //Преобразуем строку в класс тест.
                 ExecuteMSG r = objectMapper.readValue(all, ExecuteMSG.class);
+                //Начинаем работать над тестом. Если сообщение и его расшифровка прошли удачно, то весь код ниже не вызовет проблем
                 Pair<Integer, FunctionPackage> msg = r.getMsg();
                 int index = msg.getKey();
                 FunctionPackage functionPackage = msg.getValue();
@@ -75,23 +83,24 @@ public class Executer {
                 //Создаем сообщение о команде
                 StorageMSG storageMSG = new StorageMSG(res, test.getExpectedResult(), check,test.getParams(), test.getTestName());
                 StorageCommand storageCommand = new StorageCommand(functionPackage.getPackageId(), storageMSG);
+
+                //Преобразуем полученный ответ в строку и добавляем ее в сообщение
                 String gfg = objectMapper.writeValueAsString(storageCommand);
-                //Отправляем сообщение о команде
-                //getSender().tell(storageCommand, ActorRef.noSender());
                 ZMsg se = new ZMsg();
                 se.add(gfg);
 
-                se.send(socket);
+                //Отправляем сообщение в Хранилище
+                se.send(sStorage);
             }
         }
         //Заканчиваем работу и закрывааем сокеты
-        context.destroySocket(socket);
+        context.destroySocket(sJSAkka);
         context.destroy();
     }
 
     private static void isTimeout(ZMQ.Socket socket) {
         if (System.currentTimeMillis() >= timeout) {
-            System.out.println("TIMEOUT");
+            //System.out.println("TIMEOUT");
             timeout = System.currentTimeMillis() + 3000;
             ZFrame frame = new ZFrame("TIMEOUT");
             frame.send(socket, 0);

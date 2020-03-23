@@ -46,8 +46,9 @@ public class Storage {
             //После подключения с определнным интервалом времени высылает сообщение NOTIFY в котором сообщает
             //интервал хранимых значений.
             isTimeout(socket);
-            //Если получили сообщение от main
+            //Если получили сообщение от main, то нужно отправить обратно ответ
             if (poller.pollin(0)){
+                System.out.println("Получил сообщение от main");
                 ZMsg recv = ZMsg.recvMsg(socket);
                 String msg = new String(recv.getLast().getData(), ZMQ.CHARSET);
                 GetMSG m = objectMapper.readValue(msg, GetMSG.class);
@@ -66,8 +67,10 @@ public class Storage {
                 */
             }
             else{
-                //Если получили сообщение от исполнителя
+
+                //Если получили сообщение от исполнителя, то сохраняем
                 if(poller.pollin(1)){
+                    System.out.println("Получил сообщение от исполнителя");
                     ZMsg recv = ZMsg.recvMsg(socket);
                     String msg = new String(recv.getLast().getData(), ZMQ.CHARSET);
                     StorageCommand com = objectMapper.readValue(msg, StorageCommand.class);
