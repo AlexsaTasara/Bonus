@@ -26,9 +26,8 @@ public class NewMainActor extends UntypedActor {
     public NewMainActor() {
         context = new ZContext();
         //Открывает два сокета ROUTER.
-        //Клиентом я пока вообще не пользуюсь. Его скорее всего придется удалить.
-        sStorage = context.createSocket(SocketType.ROUTER);
-        sExecuter = context.createSocket(SocketType.ROUTER);
+        sStorage = context.createSocket(SocketType.REQ);
+        sExecuter = context.createSocket(SocketType.DEALER);
         sStorage.bind("tcp://localhost:8002");
         sExecuter.bind("tcp://localhost:8003");
         System.out.println("Start");
@@ -36,6 +35,8 @@ public class NewMainActor extends UntypedActor {
         //От одного принимаются команды от клиентов.
         poll.register(sStorage, ZMQ.Poller.POLLIN);
         poll.register(sExecuter, ZMQ.Poller.POLLIN);
+
+
         storage = getContext().actorOf(Props.create(NewStorageActor.class));
         executer = getContext().actorOf(Props.create(NewExecuterActor.class));
         ObjectMapper objectMapper = new ObjectMapper();

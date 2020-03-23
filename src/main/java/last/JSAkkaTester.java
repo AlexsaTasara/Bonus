@@ -21,15 +21,6 @@ import akka.http.javadsl.marshallers.jackson.Jackson;
 //Подключаем ZeroMQ
 import org.zeromq.*;
 
-/*
-import akka.zeromq.ZeroMQExtension;
-import akka.zeromq.Bind;
-
-import akka.zeromq.Connect;
-import akka.zeromq.Listener;
-import akka.zeromq.Subscribe;
-*/
-
 public class  JSAkkaTester extends AllDirectives {
     //Добавляю коментарий для проверки работы
     static ActorRef mainActor, newMainActor;
@@ -43,40 +34,18 @@ public class  JSAkkaTester extends AllDirectives {
     private static final String SERVER_INFO = "Server online on localhost:8080/\n PRESS ANY KEY TO STOP";
 
     public static void main(String[] args) throws Exception {
-        /*
-        context = new ZContext();
-        caches = new ArrayList<>();
 
-        //Открывает два сокета ROUTER.
-        //Клиентом я пока вообще не пользуюсь. Его скорее всего придется удалить.
-        sClient = context.createSocket(SocketType.ROUTER);
-        sStorage = context.createSocket(SocketType.ROUTER);
-        sExecuter = context.createSocket(SocketType.ROUTER);
-        sClient.bind("tcp://localhost:8001");
-        sStorage.bind("tcp://localhost:8002");
-        sExecuter.bind("tcp://localhost:8003");
-        System.out.println("Start");
-        poll = context.createPoller(3);
-        //От одного принимаются команды от клиентов.
-        poll.register(sClient, ZMQ.Poller.POLLIN);
-        poll.register(sStorage, ZMQ.Poller.POLLIN);
-        poll.register(sExecuter, ZMQ.Poller.POLLIN);
-         */
+        //                        Описание соединений
+        //"tcp://localhost:8001" = executer -> storage
+        //"tcp://localhost:8002" = main <-> storage
+        //"tcp://localhost:8003" = main -> executer
+        //Задумка такова, но могу ошибаться в том, как это устроенно в ZeroMQ.
 
         //Actor system обеспечивает запуск акторов пересылку сообщений и т.д.
         ActorSystem system = ActorSystem.create(ROUTES);
-        //mainActor = system.actorOf(Props.create(MainActor.class));
+
         newMainActor = system.actorOf(Props.create(NewMainActor.class));
         //Все взаимодействие с актором после его создания происходит с помощью ActorRef
-        //newMainActor = ZeroMQExtension.get(system).newSocket();
-        /*
-        ActorRef pubSocket = ZeroMQExtension.get(system).newPubSocket(
-                new Bind("tcp://127.0.0.1:1233"));
-        ActorRef listener = system.actorOf(Props.create(NewStorageActor.class));
-        ActorRef subSocket = ZeroMQExtension.get(system).newSubSocket(
-                new Connect("tcp://127.0.0.1:1233"),
-                new Listener(listener), Subscribe.all());
-         */
 
         //Инициализируем http систему с помощью high level api
         final Http http = Http.get(system);
@@ -95,12 +64,13 @@ public class  JSAkkaTester extends AllDirectives {
         //Выводим информацию о сервере
         System.out.println(SERVER_INFO);
         System.in.read();
-        //Закрываем сокеты
+        //Закрываем сокеты после нажатия на любую клавишу
         binding.thenCompose(ServerBinding::unbind).thenAccept(unbound -> system.terminate());
     }
 
-    //Скорее всего это будет происходить так. Future и Patterns.ask мне нужно оставить, значит нужно оставить newMainActor
-    //Тогда в newMainActor будет происходить подключение к сокетам программ Executer и Storage.
+    // Скорее всего это будет происходить так.
+    // Future и Patterns.ask мне нужно оставить, по заданию, значит нужно оставить newMainActor
+    // Тогда в newMainActor будет происходить подключение к сокетам программ Executer и Storage.
 
 
 

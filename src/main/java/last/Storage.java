@@ -22,34 +22,40 @@ public class Storage {
         context = new ZContext();
         //Открывает сокет DEALER, подключается к JSAkkaTester
         //sMain = context.createSocket(SocketType.REQ);
-        ZMQ.Socket socket = context.createSocket(SocketType.DEALER);
-        socket.connect("tcp://localhost:8002");
+        ZMQ.Socket sMain = context.createSocket(SocketType.REP);
+        ZMQ.Socket sExecuter = context.createSocket(SocketType.ROUTER);
+        sMain.connect("tcp://localhost:8002"); //Сокет соединение с main Получает от него сообщения
+        sExecuter.connect("tcp://localhost:8001");//Сокет соединения с испольнителем Получает от него сообщения
 
-        storage = new HashMap<>();
+        //storage = new HashMap<>();
+
+        /*
         //Задаем размеры хранилища
         Scanner in = new Scanner(System.in);
         int start = in.nextInt();
         int end = in.nextInt();
-
         ZFrame initFrame = new ZFrame("INIT" + " " + start + " " + end);
-        initFrame.send(socket, 0);
+        initFrame.send(sMain, 0);
+        */
+
+
         //Пишем сообщение где хранилище, если подключились и задали размеры хранилища
         System.out.println("Storage start on tcp://localhost:8002");
         ObjectMapper objectMapper = new ObjectMapper();
         //Принимаем сообщения от JSAkkaTester
         poller = context.createPoller(2);
-        poller.register(socket, ZMQ.Poller.POLLIN);
-        poller.register(socket, ZMQ.Poller.POLLIN);
+        poller.register(sMain, ZMQ.Poller.POLLIN);
+        poller.register(sExecuter, ZMQ.Poller.POLLIN);
         //Задаем интервал остановки
         timeout = System.currentTimeMillis() + 3000;
         while (poller.poll(3000) != -1){
             //После подключения с определнным интервалом времени высылает сообщение NOTIFY в котором сообщает
             //интервал хранимых значений.
-            isTimeout(socket);
+            isTimeout(sMain);
             //Если получили сообщение от main, то нужно отправить обратно ответ
             if (poller.pollin(0)){
                 System.out.println("Получил сообщение от main");
-                ZMsg recv = ZMsg.recvMsg(socket);
+                ZMsg recv = ZMsg.recvMsg(sMain);
                 String msg = new String(recv.getLast().getData(), ZMQ.CHARSET);
                 GetMSG m = objectMapper.readValue(msg, GetMSG.class);
                 //Настроить!
@@ -58,7 +64,7 @@ public class Storage {
 
 
                 //Отправляем сообщение
-                z.send(socket);
+                z.send(sMain);
                 /*
                 getSender().tell(
                         data.get(msg.getPackageId()).toArray(),
@@ -71,7 +77,7 @@ public class Storage {
                 //Если получили сообщение от исполнителя, то сохраняем
                 if(poller.pollin(1)){
                     System.out.println("Получил сообщение от исполнителя");
-                    ZMsg recv = ZMsg.recvMsg(socket);
+                    ZMsg recv = ZMsg.recvMsg(sMain);
                     String msg = new String(recv.getLast().getData(), ZMQ.CHARSET);
                     StorageCommand com = objectMapper.readValue(msg, StorageCommand.class);
                     if (data.containsKey(com.getPackageID())) {
@@ -88,16 +94,17 @@ public class Storage {
             }
         }
         //Заканчиваем работу и закрывааем сокеты
-        context.destroySocket(socket);
+        context.destroySocket(sMain);
+        context.destroySocket(sExecuter);
         context.destroy();
     }
 
     private static void isTimeout(ZMQ.Socket socket) {
         if (System.currentTimeMillis() >= timeout) {
-            System.out.println("TIMEOUT");
+            //System.out.println("TIMEOUT");
             timeout = System.currentTimeMillis() + 3000;
             ZFrame frame = new ZFrame("TIMEOUT");
-            frame.send(socket, 0);
+            //frame.send(socket, 0);
         }
     }
 }

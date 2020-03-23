@@ -21,26 +21,27 @@ public class Executer {
     public static void main(String[] args) throws ScriptException, NoSuchMethodException, IOException {
         context = new ZContext();
         //Открывает сокет DEALER, подключается к mainActor sStorage
-        ZMQ.Socket sJSAkka = context.createSocket(SocketType.DEALER);
+        ZMQ.Socket sMain = context.createSocket(SocketType.ROUTER);
         ZMQ.Socket sStorage = context.createSocket(SocketType.DEALER);
-        sJSAkka.connect("tcp://localhost:8003");
-        sStorage.connect("tcp://localhost:8002");
-        //Пишем сообщение где хранилище, если подключились и задали размеры хранилища
+        sMain.connect("tcp://localhost:8003"); //Сокет соединения с main Получает от него сообщения
+        sStorage.connect("tcp://localhost:8001");//Сокет соединения с хранилищем Отправляет туда сообщения
+
+        //Пишем сообщение где хранилище, если подключились
         System.out.println("Executer start on tcp://localhost:8003");
 
         //Принимаем сообщения от JSAkkaTester
         poller = context.createPoller(1);
-        poller.register(sJSAkka, ZMQ.Poller.POLLIN);
+        poller.register(sMain, ZMQ.Poller.POLLIN);
         //Задаем интервал остановки
         timeout = System.currentTimeMillis() + 3000;
         while (poller.poll(3000) != -1){
             //После подключения с определнным интервалом времени высылает сообщение NOTIFY в котором сообщает
             //интервал хранимых значений.
-            isTimeout(sJSAkka);
+            isTimeout(sMain);
             //Единственный вид сообщений, который может получить исполнитель это тест, результат которого отправляется в хранилище.
             if (poller.pollin(0)){
                 System.out.println("Получил сообщение от main");
-                ZMsg recv = ZMsg.recvMsg(sJSAkka);
+                ZMsg recv = ZMsg.recvMsg(sMain);
                 //Преобразуем сообщение в строку
                 String all = new String(recv.getLast().getData(), ZMQ.CHARSET);
                 //Второй способ переноса сообщения в строку. Какой лучше пока не понятно.
@@ -58,6 +59,14 @@ public class Executer {
                 System.out.println(tests);
                 String all = packId + jss + fn + tests;
                  */
+
+                //Сообщение которое получает исполнитель.
+//{"msg":{"key":0,"value":{"packageId":11,"functionName":"divideFn","tests":[{"expectedResult":"2.0","params":[2,1],"result":"NONE","checker":"NOT READY YET","testName":"test1"},{"expectedResult":"2.0","params":[4,2],"result":"NONE","checker":"NOT READY YET","testName":"test2"}],"jsscript":"var divideFn = function(a,b) { return a/b} "}}}
+                //readValue не может его преобразовать и выводит ошибку
+
+                //Cannot construct instance of `last.ExecuteMSG` (no Creators, like default construct, exist):
+                //cannot deserialize from Object value (no delegate- or property-based Creator) at [Source: ... Строка написанная выше ... ]
+
                 System.out.println(all);
                 ObjectMapper objectMapper = new ObjectMapper();
                 //Преобразуем строку в класс тест.
@@ -94,7 +103,8 @@ public class Executer {
             }
         }
         //Заканчиваем работу и закрывааем сокеты
-        context.destroySocket(sJSAkka);
+        context.destroySocket(sMain);
+        context.destroySocket(sStorage);
         context.destroy();
     }
 
@@ -103,7 +113,7 @@ public class Executer {
             //System.out.println("TIMEOUT");
             timeout = System.currentTimeMillis() + 3000;
             ZFrame frame = new ZFrame("TIMEOUT");
-            frame.send(socket, 0);
+            //frame.send(socket, 0);
         }
     }
 }
