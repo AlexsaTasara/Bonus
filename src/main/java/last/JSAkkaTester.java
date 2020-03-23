@@ -24,10 +24,6 @@ import org.zeromq.*;
 public class  JSAkkaTester extends AllDirectives {
     //Добавляю коментарий для проверки работы
     static ActorRef mainActor, newMainActor;
-    private static ZMQ.Poller poll;
-    private static ZContext context;
-    private static ArrayList<Cache> caches;
-    private static ZMQ.Socket sClient,sStorage,sExecuter;
     private static final int SERVER_PORT = 8080, TIMEOUT_MILLIS = 5000;
     private static final String POST_MESSAGE = "Message was posted";
     private static final String ROUTES = "routes", LOCALHOST = "localhost", PACKAGE_ID = "packageId";

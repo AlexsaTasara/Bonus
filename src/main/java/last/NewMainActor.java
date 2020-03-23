@@ -17,13 +17,13 @@ public class NewMainActor extends UntypedActor {
 
     private static ZMQ.Poller poll;
     private static ZContext context;
-    private static ArrayList<Cache> caches;
     private static ZMQ.Socket sStorage,sExecuter;
     private final ActorRef storage;//Хранилище
     private final ActorRef executer;//Исполнители
     //Функция подключения акторов
-    // Нужно ли исправлять? Скорее всего да.
+
     public NewMainActor() {
+
         context = new ZContext();
         //Открывает два сокета ROUTER.
         sStorage = context.createSocket(SocketType.REQ);
@@ -39,7 +39,6 @@ public class NewMainActor extends UntypedActor {
 
         storage = getContext().actorOf(Props.create(NewStorageActor.class));
         executer = getContext().actorOf(Props.create(NewExecuterActor.class));
-        ObjectMapper objectMapper = new ObjectMapper();
     }
     @Override
     public void onReceive(Object message) throws Exception {
