@@ -63,18 +63,21 @@ public class Executer {
 
                 System.out.println(all);
 
-                all.replaceAll("jsscript", "jsScript");
+                String s1 = all.substring(0, all.indexOf("jsscript"));
+                String s2 = all.substring(all.indexOf("jsscript")+8);
+                String s = s1 + "jsScript" + s2;
+                //all.replaceAll("jsscript", "jsScript");
 
                 //ПОЧЕМУ Я НЕ МОГУ ЕГО ПРОСТО ЗАМЕНИТЬ!
 
 
-                System.out.println(all);
+                //System.out.println(all);
                 ObjectMapper objectMapper = new ObjectMapper();
                 //objectMapper.enableDefaultTyping();
                 //Преобразуем строку в класс тест.
                 //String all2 = all.substring(7,all.length()-1);
                 //System.out.println(all2);
-                ExecMSG r2 = objectMapper.readValue(all, ExecMSG.class);
+                ExecMSG r2 = objectMapper.readValue(s, ExecMSG.class);
                 //ExecuteMSG r = objectMapper.readValue(all, ExecuteMSG.class);
                 //Начинаем работать над тестом. Если сообщение и его расшифровка прошли удачно, то весь код ниже не вызовет проблем
                 //Pair<Integer, FunctionPackage> msg = r.getMsg();

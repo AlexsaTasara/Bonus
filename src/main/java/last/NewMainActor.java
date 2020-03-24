@@ -36,7 +36,6 @@ public class NewMainActor extends UntypedActor {
         poll.register(sStorage, ZMQ.Poller.POLLIN);
         poll.register(sExecuter, ZMQ.Poller.POLLIN);
 
-
         storage = getContext().actorOf(Props.create(NewStorageActor.class));
         executer = getContext().actorOf(Props.create(NewExecuterActor.class));
     }
@@ -51,15 +50,14 @@ public class NewMainActor extends UntypedActor {
                 //Нужно настроить
                 ExecuteMSG ex = new ExecuteMSG(idx, fp);
                 ExecMSG ex1 = new ExecMSG(idx,fp);
-                System.out.println(fp.getJSScript());
+                //System.out.println(fp.getJSScript());
                 executer.tell(ex, storage);
 
                 String gfg = objectMapper.writeValueAsString(ex1);
 
-
                 //gfg уже имеет jsscript вместо jsScript
 
-                System.out.println(gfg);
+                //System.out.println(gfg);
                 ZMsg se = new ZMsg();
                 se.add(gfg);
                 //Отправляем сообщение в Исполнителю
@@ -79,6 +77,9 @@ public class NewMainActor extends UntypedActor {
                 se.add(gfg);
                 //Отправляем сообщение в Исполнителю
                 se.send(sStorage);
+
+
+                //Хранилище не получило сообщение. Это надо исправить, но в остальном вроде все работает.
             }
             else{
                 unhandled(message);

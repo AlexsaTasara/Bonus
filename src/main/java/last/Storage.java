@@ -14,7 +14,7 @@ public class Storage {
     private static ZContext context;
     private static ZMQ.Poller poller;
 
-    private static HashMap<Integer, ArrayList<StorageMSG>> data = new HashMap<>();
+    private static HashMap<Integer, ArrayList<SMSG>> data = new HashMap<>();
 
     public static void main(String[] args) throws IOException {
         context = new ZContext();
@@ -23,7 +23,7 @@ public class Storage {
         ZMQ.Socket sMain = context.createSocket(SocketType.REP);
         ZMQ.Socket sExecuter = context.createSocket(SocketType.ROUTER);
         sMain.connect("tcp://localhost:8002"); //Сокет соединение с main Получает от него сообщения
-        sExecuter.connect("tcp://localhost:8001");//Сокет соединения с испольнителем Получает от него сообщения
+        sExecuter.bind("tcp://localhost:8001");//Сокет соединения с испольнителем Получает от него сообщения
 
 
         //Пишем сообщение где хранилище, если подключились и задали размеры хранилища
@@ -47,11 +47,14 @@ public class Storage {
                 GetMSG m = objectMapper.readValue(msg, GetMSG.class);
                 //Настроить!
                 ZMsg z = new ZMsg();
-                z.add(data.get(m.getPackageId()).toString());
+                String answr = objectMapper.writeValueAsString(data.get(m.getPackageId()));
+                z.add(answr);
+                System.out.println("Отправляю ответ main");
+                System.out.println(answr);
 
-
-                //Отправляем сообщение
+                //Отправляем сообщение в main, надо настроить
                 z.send(sMain);
+
                 /*
                 getSender().tell(
                         data.get(msg.getPackageId()).toArray(),
@@ -64,15 +67,16 @@ public class Storage {
                 //Если получили сообщение от исполнителя, то сохраняем
                 if(poller.pollin(1)){
                     System.out.println("Получил сообщение от исполнителя");
-                    ZMsg recv = ZMsg.recvMsg(sMain);
+                    ZMsg recv = ZMsg.recvMsg(sExecuter);
                     String msg = new String(recv.getLast().getData(), ZMQ.CHARSET);
-                    StorageCommand com = objectMapper.readValue(msg, StorageCommand.class);
+                    System.out.println(msg);
+                    SCommand com = objectMapper.readValue(msg, SCommand.class);
                     if (data.containsKey(com.getPackageID())) {
-                        ArrayList<StorageMSG> tests = data.get(com.getPackageID());
+                        ArrayList<SMSG> tests = data.get(com.getPackageID());
                         tests.add(com.getStorageMSG());
                         data.put(com.getPackageID(), tests);
                     } else {
-                        ArrayList<StorageMSG> tests = new ArrayList<>();
+                        ArrayList<SMSG> tests = new ArrayList<>();
                         tests.add(com.getStorageMSG());
                         data.put(com.getPackageID(), tests);
                     }
