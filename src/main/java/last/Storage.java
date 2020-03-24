@@ -46,14 +46,22 @@ public class Storage {
                 String msg = new String(recv.getLast().getData(), ZMQ.CHARSET);
                 GetMSG m = objectMapper.readValue(msg, GetMSG.class);
                 //Настроить!
-                ZMsg z = new ZMsg();
                 String answr = objectMapper.writeValueAsString(data.get(m.getPackageId()));
-                z.add(answr);
                 System.out.println("Отправляю ответ main");
                 System.out.println(answr);
 
+                /*
+                ZMsg z = new ZMsg();
+                z.add(answr);
+                 */
                 //Отправляем сообщение в main, надо настроить
-                z.send(sMain);
+                /*
+                m.getActor().tell(
+                        data.get(m.getMSG().getPackageId()).toArray(),
+                        ActorRef.noSender()
+                );
+                 */
+                //z.send(sMain);
 
                 /*
                 getSender().tell(

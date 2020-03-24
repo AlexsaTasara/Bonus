@@ -10,6 +10,7 @@ public class NewStorageActor extends UntypedActor {
         if (message instanceof GetMSG) {
             GetMSG msg = (GetMSG)message;
             //Настроить!
+
             getSender().tell(
                     data.get(msg.getPackageId()).toArray(),
                     ActorRef.noSender()
